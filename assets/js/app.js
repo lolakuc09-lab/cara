@@ -19,11 +19,19 @@ let front = v1, back = v2;
 const msg = document.getElementById("msg");
 const send = document.getElementById("send");
 
+const menuBtn = document.getElementById("menuBtn");
+const sideMenu = document.getElementById("sideMenu");
+
+const voiceRate = document.getElementById("voiceRate");
+const voiceRateVal = document.getElementById("voiceRateVal");
+const intensity = document.getElementById("intensity");
+const intensityVal = document.getElementById("intensityVal");
+const zoom = document.getElementById("zoom");
+const zoomVal = document.getElementById("zoomVal");
+
 // ================= ESTADO =================
 let audioUnlocked = false;
-let brain = {
-  mood: "soft"
-};
+let brain = { mood: "soft" };
 
 // ================= VIDEO =================
 const videoPools = {
@@ -48,6 +56,7 @@ function setVideo(src){
     back.classList.add("active");
     front.classList.remove("active");
     [front, back] = [back, front];
+    applyEffects();
   };
 }
 
@@ -55,11 +64,24 @@ function nextVideoByMood(mood){
   setVideo(pickFromPool(mood));
 }
 
+function applyEffects(){
+  const vi = parseFloat(intensity.value);
+  const z = parseFloat(zoom.value);
+  const f = `brightness(${0.92 + vi*0.1}) contrast(${1 + vi*0.25}) saturate(${1 + vi*0.3})`;
+  front.style.filter = f;
+  back.style.filter = f;
+  front.style.transform = `scale(${z})`;
+  back.style.transform = `scale(${z})`;
+  intensityVal.textContent = vi.toFixed(2);
+  zoomVal.textContent = z.toFixed(2);
+}
+
 // ================= VOZ =================
 function hablar(text){
   if (!audioUnlocked) return;
   const u = new SpeechSynthesisUtterance(String(text||"").trim());
   u.lang = "es-419";
+  u.rate = parseFloat(voiceRate.value);
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
@@ -72,22 +94,11 @@ async function callAPI(message){
     mood: brain.mood
   };
 
-  let r;
-  try {
-    r = await fetch(API_URL, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
-    });
-  } catch (err) {
-    console.error("Fetch error:", err);
-    return;
-  }
-
-  if (!r.ok) {
-    console.error("Worker error:", r.status);
-    return;
-  }
+  const r = await fetch(API_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
 
   const d = await r.json().catch(()=>({}));
 
@@ -98,11 +109,17 @@ async function callAPI(message){
 }
 
 // ================= EVENTOS =================
+menuBtn.addEventListener("click", ()=> sideMenu.classList.toggle("open"));
+
+voiceRate.addEventListener("input", ()=> voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2));
+intensity.addEventListener("input", applyEffects);
+zoom.addEventListener("input", applyEffects);
+
 function unlockAudio(){
   audioUnlocked = true;
   const u = new SpeechSynthesisUtterance(" ");
   u.volume = 0;
-  try { speechSynthesis.speak(u); } catch {}
+  speechSynthesis.speak(u);
 }
 
 function sendUser(){
@@ -121,3 +138,9 @@ startBtn.addEventListener("click", ()=>{
   nextVideoByMood("soft");
   callAPI("Hola");
 });
+
+// init UI
+voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2);
+intensityVal.textContent = parseFloat(intensity.value).toFixed(2);
+zoomVal.textContent = parseFloat(zoom.value).toFixed(2);
+applyEffects();
