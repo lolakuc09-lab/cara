@@ -21,6 +21,7 @@ const send = document.getElementById("send");
 
 const menuBtn = document.getElementById("menuBtn");
 const sideMenu = document.getElementById("sideMenu");
+const menuBackdrop = document.getElementById("menuBackdrop");
 
 const voiceRate = document.getElementById("voiceRate");
 const voiceRateVal = document.getElementById("voiceRateVal");
@@ -32,6 +33,48 @@ const zoomVal = document.getElementById("zoomVal");
 // ================= ESTADO =================
 let audioUnlocked = false;
 let brain = { mood: "soft" };
+
+// ================= MENU (FIX) =================
+function isMenuOpen() {
+  return sideMenu.classList.contains("open");
+}
+
+function openMenu() {
+  sideMenu.classList.add("open");
+  menuBackdrop.classList.add("open");
+  menuBtn.setAttribute("aria-expanded", "true");
+  sideMenu.setAttribute("aria-hidden", "false");
+}
+
+function closeMenu() {
+  sideMenu.classList.remove("open");
+  menuBackdrop.classList.remove("open");
+  menuBtn.setAttribute("aria-expanded", "false");
+  sideMenu.setAttribute("aria-hidden", "true");
+}
+
+function toggleMenu() {
+  if (isMenuOpen()) closeMenu();
+  else openMenu();
+}
+
+menuBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  toggleMenu();
+});
+
+menuBackdrop.addEventListener("click", () => {
+  closeMenu();
+});
+
+// Cerrar con ESC
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && isMenuOpen()) closeMenu();
+});
+
+// Evitar que clicks dentro del menú cierren por bubbling
+sideMenu.addEventListener("click", (e) => e.stopPropagation());
 
 // ================= VIDEO =================
 const videoPools = {
@@ -48,6 +91,18 @@ function pickFromPool(mood){
   return `assets/videos/${n}.mp4`;
 }
 
+function applyEffects(){
+  const vi = parseFloat(intensity.value);
+  const z = parseFloat(zoom.value);
+  const f = `brightness(${0.92 + vi*0.1}) contrast(${1 + vi*0.25}) saturate(${1 + vi*0.3})`;
+  front.style.filter = f;
+  back.style.filter = f;
+  front.style.transform = `scale(${z})`;
+  back.style.transform = `scale(${z})`;
+  intensityVal.textContent = vi.toFixed(2);
+  zoomVal.textContent = z.toFixed(2);
+}
+
 function setVideo(src){
   back.src = src;
   back.load();
@@ -62,18 +117,6 @@ function setVideo(src){
 
 function nextVideoByMood(mood){
   setVideo(pickFromPool(mood));
-}
-
-function applyEffects(){
-  const vi = parseFloat(intensity.value);
-  const z = parseFloat(zoom.value);
-  const f = `brightness(${0.92 + vi*0.1}) contrast(${1 + vi*0.25}) saturate(${1 + vi*0.3})`;
-  front.style.filter = f;
-  back.style.filter = f;
-  front.style.transform = `scale(${z})`;
-  back.style.transform = `scale(${z})`;
-  intensityVal.textContent = vi.toFixed(2);
-  zoomVal.textContent = z.toFixed(2);
 }
 
 // ================= VOZ =================
@@ -109,9 +152,9 @@ async function callAPI(message){
 }
 
 // ================= EVENTOS =================
-menuBtn.addEventListener("click", ()=> sideMenu.classList.toggle("open"));
-
-voiceRate.addEventListener("input", ()=> voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2));
+voiceRate.addEventListener("input", ()=> {
+  voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2);
+});
 intensity.addEventListener("input", applyEffects);
 zoom.addEventListener("input", applyEffects);
 
@@ -119,13 +162,17 @@ function unlockAudio(){
   audioUnlocked = true;
   const u = new SpeechSynthesisUtterance(" ");
   u.volume = 0;
-  speechSynthesis.speak(u);
+  try { speechSynthesis.speak(u); } catch {}
 }
 
 function sendUser(){
   const t = msg.value.trim();
   if (!t) return;
   msg.value = "";
+
+  // Cierra el menú al enviar (UX)
+  if (isMenuOpen()) closeMenu();
+
   callAPI(t);
 }
 
@@ -144,3 +191,4 @@ voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2);
 intensityVal.textContent = parseFloat(intensity.value).toFixed(2);
 zoomVal.textContent = parseFloat(zoom.value).toFixed(2);
 applyEffects();
+closeMenu();

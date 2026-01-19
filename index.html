@@ -30,11 +30,14 @@
       <div id="status"><span id="dot">●</span><span id="statusText">Cara está contigo</span></div>
 
       <div class="row" style="gap:10px;">
-        <button id="menuBtn" class="btn" title="Menú">≡</button>
+        <button id="menuBtn" class="btn" title="Menú" aria-expanded="false" aria-controls="sideMenu">≡</button>
       </div>
     </div>
 
-    <div id="sideMenu">
+    <!-- Backdrop para cerrar el menú al tocar afuera -->
+    <div id="menuBackdrop" aria-hidden="true"></div>
+
+    <div id="sideMenu" aria-hidden="true">
       <h2>Ajustes</h2>
 
       <div class="setting">
