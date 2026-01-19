@@ -93,15 +93,42 @@ const videoPools = {
   intense:[15,16,17,18,19,20,21,22,23,24]
 };
 
+// Bolsas de reproducción sin repetición
+const videoBags = {
+  idle: [],
+  soft: [],
+  tease: [],
+  hot: [],
+  intense: []
+};
+
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function getNextFromBag(mood){
+  let m = mood;
+  if (!adultMode && (m==="hot"||m==="intense")) m="tease";
+
+  if (!videoBags[m] || videoBags[m].length === 0) {
+    // recargar bolsa mezclada
+    videoBags[m] = shuffle([...videoPools[m]]);
+  }
+
+  const n = videoBags[m].pop();
+  return `assets/videos/${n}.mp4`;
+}
+
 let lastAutoVideoChange = 0;
 
 function pickFromPool(mood){
-  let m = mood;
-  if (!adultMode && (m==="hot"||m==="intense")) m="tease";
-  const pool = videoPools[m] || videoPools.soft;
-  const n = pool[Math.floor(Math.random()*pool.length)];
-  return `assets/videos/${n}.mp4`;
+  return getNextFromBag(mood);
 }
+
 
 function applyEffects(){
   const vi = parseFloat(intensity.value);
