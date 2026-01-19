@@ -49,11 +49,12 @@ let presence = {
   seen: false,
   distance: "unknown", // near | mid | far
   attention: false,
+  motion: 0,
   lastSeenTs: 0
 };
 
 // ================= SETTINGS =================
-const LS_KEY = "cara_settings_v6";
+const LS_KEY = "cara_settings_v7";
 let adultMode = false;
 let autoMode = true;
 
@@ -91,6 +92,9 @@ const videoPools = {
   hot:[13,14],
   intense:[15,16,17,18,19,20,21,22,23,24]
 };
+
+let lastAutoVideoChange = 0;
+
 function pickFromPool(mood){
   let m = mood;
   if (!adultMode && (m==="hot"||m==="intense")) m="tease";
@@ -98,6 +102,7 @@ function pickFromPool(mood){
   const n = pool[Math.floor(Math.random()*pool.length)];
   return `assets/videos/${n}.mp4`;
 }
+
 function applyEffects(){
   const vi = parseFloat(intensity.value);
   const z = parseFloat(zoom.value);
@@ -107,6 +112,7 @@ function applyEffects(){
   intensityVal.textContent = vi.toFixed(2);
   zoomVal.textContent = z.toFixed(2);
 }
+
 function setVideo(src){
   back.src = src; back.load();
   back.oncanplay = () => {
@@ -117,7 +123,46 @@ function setVideo(src){
     applyEffects();
   };
 }
-function nextVideoByMood(mood){ setVideo(pickFromPool(mood)); }
+
+function nextVideoByMood(mood){ 
+  setVideo(pickFromPool(mood)); 
+}
+
+// ================= 🎭 VIDEO SEGÚN PRESENCIA =================
+function decideVideoByPresence(){
+  const now = Date.now();
+  if (now - lastAutoVideoChange < 4000) return; // no cambiar tan seguido
+
+  let targetMood = brain.mood;
+
+  if (!presence.seen){
+    targetMood = "idle";
+  } else {
+    if (presence.distance === "near" && presence.attention){
+      targetMood = adultMode ? "intense" : "tease";
+    }
+    else if (presence.distance === "near"){
+      targetMood = "hot";
+    }
+    else if (presence.distance === "mid"){
+      targetMood = "tease";
+    }
+    else if (presence.distance === "far"){
+      targetMood = "soft";
+    }
+
+    if (presence.motion > 0.6){
+      // inquieto → más teasing
+      targetMood = "tease";
+    }
+  }
+
+  if (targetMood !== brain.mood){
+    brain.mood = targetMood;
+    nextVideoByMood(brain.mood);
+    lastAutoVideoChange = now;
+  }
+}
 
 // ================= VOZ (TTS) =================
 function hablar(text){
@@ -153,7 +198,6 @@ function setupSTT(){
     msg.value = t;
     sendUser();
   };
-  recognition.onerror = ()=>{};
 }
 micBtn.addEventListener("click", ()=>{
   if (!recognition) return;
@@ -168,8 +212,8 @@ function syncModeUI(){
   autoToggle.textContent = autoMode ? "ON" : "OFF";
   saveSettings();
 }
-modeNormal.onclick = ()=>{ adultMode=false; syncModeUI(); nextVideoByMood("soft"); };
-modeAdult.onclick = ()=>{ adultMode=true; syncModeUI(); nextVideoByMood("tease"); };
+modeNormal.onclick = ()=>{ adultMode=false; syncModeUI(); };
+modeAdult.onclick = ()=>{ adultMode=true; syncModeUI(); };
 autoToggle.onclick = ()=>{ autoMode=!autoMode; syncModeUI(); };
 forceNext.onclick = ()=>{ nextVideoByMood(brain.mood); };
 
@@ -185,7 +229,7 @@ async function callAPI(message, isAuto=false){
     mood: brain.mood,
     adult: adultMode,
     auto: !!isAuto,
-    presence // enviamos señales de presencia (opcional para el backend)
+    presence
   };
   const r = await fetch(API_URL, {
     method:"POST",
@@ -194,8 +238,6 @@ async function callAPI(message, isAuto=false){
   });
   const d = await r.json().catch(()=>({}));
   if (d?.reply) hablar(d.reply);
-  if (d?.mood) brain.mood = d.mood;
-  nextVideoByMood(brain.mood);
 }
 
 // ================= INPUT =================
@@ -222,35 +264,29 @@ function tickInitiative(){
   }
 }
 
-// ================= 👁️ CÁMARA / PRESENCIA =================
+// ================= 👁️ CÁMARA =================
 let faceDetector = null;
 let camera = null;
+let lastBoxArea = 0;
 
 function setupCameraAndPresence(){
   try{
     faceDetector = new FaceDetection({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
     });
-    faceDetector.setOptions({
-      model: 'short',
-      minDetectionConfidence: 0.6
-    });
+    faceDetector.setOptions({ model:'short', minDetectionConfidence:0.6 });
     faceDetector.onResults(onFaceResults);
 
     camera = new Camera(camVideo, {
       onFrame: async () => {
-        if (faceDetector) {
-          await faceDetector.send({ image: camVideo });
-        }
+        if (faceDetector) await faceDetector.send({ image: camVideo });
       },
       width: 640,
       height: 480
     });
 
     camera.start();
-  } catch(e){
-    console.warn("Cámara/presencia no disponible:", e);
-  }
+  } catch(e){}
 }
 
 function onFaceResults(results){
@@ -262,29 +298,33 @@ function onFaceResults(results){
     const box = faces[0].boundingBox;
     const area = box.width * box.height;
 
-    // heurística simple de distancia
+    // distancia
     if (area > 0.18) presence.distance = "near";
     else if (area > 0.08) presence.distance = "mid";
     else presence.distance = "far";
 
-    // atención: si la cara ocupa bastante área, asumimos que mira
+    // atención
     presence.attention = area > 0.1;
 
-    // actualizar status visual
-    if (presence.attention) {
-      statusText.textContent = "Cara te está mirando";
-    } else {
-      statusText.textContent = "Cara te siente cerca";
-    }
+    // movimiento
+    const delta = Math.abs(area - lastBoxArea);
+    presence.motion = Math.min(1, delta * 10);
+    lastBoxArea = area;
+
+    if (presence.attention) statusText.textContent = "Cara te está mirando";
+    else statusText.textContent = "Cara te siente cerca";
+
   } else {
-    // si hace >5s que no ve cara
-    if (Date.now() - presence.lastSeenTs > 5000){
+    if (Date.now() - presence.lastSeenTs > 4000){
       presence.seen = false;
       presence.attention = false;
       presence.distance = "unknown";
+      presence.motion = 0;
       statusText.textContent = "Cara espera que vuelvas";
     }
   }
+
+  decideVideoByPresence();
 }
 
 // ================= START =================
@@ -292,7 +332,7 @@ startBtn.addEventListener("click", ()=>{
   unlockAudio();
   start.style.display = "none";
   setupSTT();
-  setupCameraAndPresence(); // 👁️ cámara
+  setupCameraAndPresence();
   nextVideoByMood("soft");
   callAPI("Hola", false).catch(()=>{});
   setInterval(tickInitiative, 5000);
