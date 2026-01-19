@@ -1,4 +1,4 @@
-const API_URL = "carab.fedegromero.workers.dev";
+const API_URL = "https://carab.fedegromero.workers.dev/chat";
 
 // ================= USER ID =================
 const USER_ID = localStorage.getItem("cara_user_id") || (() => {
