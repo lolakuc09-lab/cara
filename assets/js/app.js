@@ -1,4 +1,5 @@
-const API_URL = "https://carab.fedegromero.workers.dev/chat";
+// ================= CONFIG =================
+const API_URL = "https://carab.fedegromero.workers.dev";
 
 // ================= USER ID =================
 const USER_ID = localStorage.getItem("cara_user_id") || (() => {
@@ -71,11 +72,22 @@ async function callAPI(message){
     mood: brain.mood
   };
 
-  const r = await fetch(API_URL, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
-  });
+  let r;
+  try {
+    r = await fetch(API_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.error("Fetch error:", err);
+    return;
+  }
+
+  if (!r.ok) {
+    console.error("Worker error:", r.status);
+    return;
+  }
 
   const d = await r.json().catch(()=>({}));
 
@@ -90,7 +102,7 @@ function unlockAudio(){
   audioUnlocked = true;
   const u = new SpeechSynthesisUtterance(" ");
   u.volume = 0;
-  speechSynthesis.speak(u);
+  try { speechSynthesis.speak(u); } catch {}
 }
 
 function sendUser(){
