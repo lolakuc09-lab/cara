@@ -30,51 +30,68 @@ const intensityVal = document.getElementById("intensityVal");
 const zoom = document.getElementById("zoom");
 const zoomVal = document.getElementById("zoomVal");
 
+const modeNormal = document.getElementById("modeNormal");
+const modeAdult = document.getElementById("modeAdult");
+const autoToggle = document.getElementById("autoToggle");
+const forceNext = document.getElementById("forceNext");
+
+const statusText = document.getElementById("statusText");
+
 // ================= ESTADO =================
 let audioUnlocked = false;
-let brain = { mood: "soft" };
 
-// ================= MENU (FIX) =================
-function isMenuOpen() {
-  return sideMenu.classList.contains("open");
+let brain = {
+  mood: "soft",
+  lastUser: Date.now(),
+  lastAuto: 0
+};
+
+// settings persistentes
+const LS_KEY = "cara_settings_v3";
+let adultMode = false;
+let autoMode = true;
+
+function loadSettings(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    if (typeof s.adultMode === "boolean") adultMode = s.adultMode;
+    if (typeof s.autoMode === "boolean") autoMode = s.autoMode;
+    if (typeof s.voiceRate === "number") voiceRate.value = String(s.voiceRate);
+    if (typeof s.intensity === "number") intensity.value = String(s.intensity);
+    if (typeof s.zoom === "number") zoom.value = String(s.zoom);
+  } catch {}
 }
 
-function openMenu() {
+function saveSettings(){
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    adultMode,
+    autoMode,
+    voiceRate: parseFloat(voiceRate.value),
+    intensity: parseFloat(intensity.value),
+    zoom: parseFloat(zoom.value)
+  }));
+}
+
+// ================= MENU =================
+function isMenuOpen(){ return sideMenu.classList.contains("open"); }
+function openMenu(){
   sideMenu.classList.add("open");
   menuBackdrop.classList.add("open");
-  menuBtn.setAttribute("aria-expanded", "true");
-  sideMenu.setAttribute("aria-hidden", "false");
+  menuBtn.setAttribute("aria-expanded","true");
+  sideMenu.setAttribute("aria-hidden","false");
 }
-
-function closeMenu() {
+function closeMenu(){
   sideMenu.classList.remove("open");
   menuBackdrop.classList.remove("open");
-  menuBtn.setAttribute("aria-expanded", "false");
-  sideMenu.setAttribute("aria-hidden", "true");
+  menuBtn.setAttribute("aria-expanded","false");
+  sideMenu.setAttribute("aria-hidden","true");
 }
+function toggleMenu(){ isMenuOpen() ? closeMenu() : openMenu(); }
 
-function toggleMenu() {
-  if (isMenuOpen()) closeMenu();
-  else openMenu();
-}
-
-menuBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  toggleMenu();
-});
-
-menuBackdrop.addEventListener("click", () => {
-  closeMenu();
-});
-
-// Cerrar con ESC
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && isMenuOpen()) closeMenu();
-});
-
-// Evitar que clicks dentro del menú cierren por bubbling
-sideMenu.addEventListener("click", (e) => e.stopPropagation());
+menuBtn.addEventListener("click",(e)=>{ e.preventDefault(); e.stopPropagation(); toggleMenu(); });
+menuBackdrop.addEventListener("click", closeMenu);
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && isMenuOpen()) closeMenu(); });
+sideMenu.addEventListener("click",(e)=>e.stopPropagation());
 
 // ================= VIDEO =================
 const videoPools = {
@@ -86,7 +103,9 @@ const videoPools = {
 };
 
 function pickFromPool(mood){
-  const pool = videoPools[mood] || videoPools.soft;
+  let m = mood;
+  if (!adultMode && (m === "hot" || m === "intense")) m = "tease";
+  const pool = videoPools[m] || videoPools.soft;
   const n = pool[Math.floor(Math.random()*pool.length)];
   return `assets/videos/${n}.mp4`;
 }
@@ -129,12 +148,62 @@ function hablar(text){
   speechSynthesis.speak(u);
 }
 
+function unlockAudio(){
+  audioUnlocked = true;
+  const u = new SpeechSynthesisUtterance(" ");
+  u.volume = 0;
+  try { speechSynthesis.speak(u); } catch {}
+}
+
+// ================= UI sync =================
+function syncModeUI(){
+  modeAdult.classList.toggle("active", adultMode);
+  modeNormal.classList.toggle("active", !adultMode);
+  autoToggle.classList.toggle("active", autoMode);
+  autoToggle.textContent = autoMode ? "ON" : "OFF";
+  saveSettings();
+}
+
+modeNormal.addEventListener("click", ()=>{
+  adultMode = false;
+  syncModeUI();
+  nextVideoByMood("soft");
+});
+
+modeAdult.addEventListener("click", ()=>{
+  adultMode = true;
+  syncModeUI();
+  nextVideoByMood("tease");
+});
+
+autoToggle.addEventListener("click", ()=>{
+  autoMode = !autoMode;
+  syncModeUI();
+});
+
+forceNext.addEventListener("click", ()=>{
+  nextVideoByMood(brain.mood);
+});
+
+// sliders
+voiceRate.addEventListener("input", ()=>{
+  voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2);
+  saveSettings();
+});
+intensity.addEventListener("input", ()=>{ applyEffects(); saveSettings(); });
+zoom.addEventListener("input", ()=>{
+  zoomVal.textContent = parseFloat(zoom.value).toFixed(2);
+  applyEffects(); saveSettings();
+});
+
 // ================= API =================
-async function callAPI(message){
+async function callAPI(message, isAuto=false){
   const payload = {
     userId: USER_ID,
     message: String(message||"").trim(),
-    mood: brain.mood
+    mood: brain.mood,
+    adult: adultMode,
+    auto: !!isAuto
   };
 
   const r = await fetch(API_URL, {
@@ -145,48 +214,62 @@ async function callAPI(message){
 
   const d = await r.json().catch(()=>({}));
 
+  // tu worker devuelve reply
   if (d?.reply) hablar(d.reply);
   if (d?.mood) brain.mood = d.mood;
 
   nextVideoByMood(brain.mood);
-}
-
-// ================= EVENTOS =================
-voiceRate.addEventListener("input", ()=> {
-  voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2);
-});
-intensity.addEventListener("input", applyEffects);
-zoom.addEventListener("input", applyEffects);
-
-function unlockAudio(){
-  audioUnlocked = true;
-  const u = new SpeechSynthesisUtterance(" ");
-  u.volume = 0;
-  try { speechSynthesis.speak(u); } catch {}
+  return d;
 }
 
 function sendUser(){
   const t = msg.value.trim();
   if (!t) return;
   msg.value = "";
+  brain.lastUser = Date.now();
 
-  // Cierra el menú al enviar (UX)
   if (isMenuOpen()) closeMenu();
 
-  callAPI(t);
+  statusText.textContent = "Cara te escucha";
+  callAPI(t, false).catch(()=>{});
+  setTimeout(()=>{ statusText.textContent = "Cara está contigo"; }, 1200);
 }
 
 send.addEventListener("click", sendUser);
-msg.addEventListener("keydown", (e)=>{ if (e.key === "Enter") sendUser(); });
+msg.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendUser(); });
 
+// ================= INICIATIVA =================
+// No spamear: sólo si idle > 25s y pasaron > 30s desde la última iniciativa
+function tickInitiative(){
+  if (!autoMode || !audioUnlocked) return;
+
+  const now = Date.now();
+  const idle = now - brain.lastUser;
+
+  const minIdle = 25000;
+  const minGap = 30000;
+
+  if (idle > minIdle && (now - brain.lastAuto) > minGap){
+    brain.lastAuto = now;
+    statusText.textContent = "Cara toma la iniciativa";
+    // Mensaje vacío controlado: el worker debe entender auto:true
+    callAPI("...", true).catch(()=>{});
+    setTimeout(()=>{ statusText.textContent = "Cara está contigo"; }, 1400);
+  }
+}
+
+// ================= START =================
 startBtn.addEventListener("click", ()=>{
   unlockAudio();
   start.style.display = "none";
   nextVideoByMood("soft");
-  callAPI("Hola");
+  callAPI("Hola", false).catch(()=>{});
+  setInterval(tickInitiative, 5000);
 });
 
-// init UI
+// init
+loadSettings();
+syncModeUI();
 voiceRateVal.textContent = parseFloat(voiceRate.value).toFixed(2);
 intensityVal.textContent = parseFloat(intensity.value).toFixed(2);
 zoomVal.textContent = parseFloat(zoom.value).toFixed(2);

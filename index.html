@@ -28,17 +28,39 @@
   <div id="ui-layer">
     <div id="topbar">
       <div id="status"><span id="dot">●</span><span id="statusText">Cara está contigo</span></div>
-
       <div class="row" style="gap:10px;">
         <button id="menuBtn" class="btn" title="Menú" aria-expanded="false" aria-controls="sideMenu">≡</button>
       </div>
     </div>
 
-    <!-- Backdrop para cerrar el menú al tocar afuera -->
+    <!-- Backdrop -->
     <div id="menuBackdrop" aria-hidden="true"></div>
 
+    <!-- Side menu -->
     <div id="sideMenu" aria-hidden="true">
       <h2>Ajustes</h2>
+
+      <div class="setting">
+        <label>Modo</label>
+        <div class="row">
+          <button id="modeNormal" class="chip active" type="button">Normal</button>
+          <button id="modeAdult" class="chip" type="button">Adulto +18</button>
+        </div>
+        <div class="mini" style="margin-top:8px;">
+          Adulto: sugerente y consensuado, sin pornografía ni descripciones gráficas.
+        </div>
+      </div>
+
+      <div class="setting">
+        <label>Iniciativa</label>
+        <div class="row">
+          <span class="mini">Cara habla sola</span>
+          <button id="autoToggle" class="chip active" type="button">ON</button>
+        </div>
+        <div class="mini" style="margin-top:8px;">
+          Si está ON, Cara toma iniciativa cuando estás idle (sin spamear).
+        </div>
+      </div>
 
       <div class="setting">
         <label>Velocidad de voz</label>
@@ -56,6 +78,10 @@
         <label>Zoom video</label>
         <input type="range" min="0.9" max="1.35" step="0.01" id="zoom" value="1.00">
         <div class="mini"><span id="zoomVal">1.00</span></div>
+      </div>
+
+      <div class="setting" style="border-bottom:none;">
+        <button id="forceNext" class="btn wide" type="button">Cambiar video</button>
       </div>
     </div>
 
