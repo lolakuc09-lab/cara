@@ -22,7 +22,7 @@ html,body{
   inset:0;
   width:100vw;
   height:100vh;
-  object-fit:cover; /* 🔥 CLAVE: llena la pantalla */
+  object-fit:cover;
   background:#000;
   opacity:0;
   transition:opacity 1s ease;
@@ -43,6 +43,7 @@ html,body{
   justify-content:center;
   background:#000;
   gap:16px;
+  text-align:center;
 }
 
 /* UI */
@@ -53,6 +54,28 @@ html,body{
   pointer-events:none;
 }
 
+#topbar{
+  position:fixed;
+  top:12px;
+  left:12px;
+  right:12px;
+  z-index:20;
+  pointer-events:auto;
+}
+
+#status{
+  padding:10px 14px;
+  border-radius:999px;
+  background:rgba(0,0,0,.5);
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  font-size:14px;
+}
+
+#dot{color:#34d399}
+
+/* BOTTOM INPUT */
 #bottom{
   position:fixed;
   left:0;
@@ -61,6 +84,7 @@ html,body{
   z-index:20;
   padding:14px;
   pointer-events:auto;
+  background:linear-gradient(transparent, rgba(0,0,0,.8));
 }
 
 #inputWrap{
@@ -71,7 +95,7 @@ html,body{
   align-items:center;
   padding:10px;
   border-radius:999px;
-  background:rgba(0,0,0,.5);
+  background:rgba(0,0,0,.6);
 }
 
 #msg{

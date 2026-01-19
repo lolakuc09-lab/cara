@@ -1,4 +1,4 @@
-const API_URL = "https://cara-api.fedegromero.workers.dev";
+const API_URL = "carab.fedegromero.workers.dev";
 
 // ================= USER ID =================
 const USER_ID = localStorage.getItem("cara_user_id") || (() => {
@@ -106,6 +106,6 @@ msg.addEventListener("keydown", (e)=>{ if (e.key === "Enter") sendUser(); });
 startBtn.addEventListener("click", ()=>{
   unlockAudio();
   start.style.display = "none";
-  nextVideoByMood("soft");   // 🔥 ARRANCA VIDEO REAL
+  nextVideoByMood("soft");
   callAPI("Hola");
 });
