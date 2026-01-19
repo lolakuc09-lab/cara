@@ -91,7 +91,7 @@ async function callAPI(message){
 
   const d = await r.json().catch(()=>({}));
 
-  if (d?.text) hablar(d.text);
+  if (d?.reply) hablar(d.reply);
   if (d?.mood) brain.mood = d.mood;
 
   nextVideoByMood(brain.mood);
