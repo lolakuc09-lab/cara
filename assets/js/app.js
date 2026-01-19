@@ -16,6 +16,8 @@ const v1 = document.getElementById("v1");
 const v2 = document.getElementById("v2");
 let front = v1, back = v2;
 
+const camVideo = document.getElementById("cam");
+
 const msg = document.getElementById("msg");
 const send = document.getElementById("send");
 const micBtn = document.getElementById("micBtn");
@@ -42,11 +44,19 @@ const statusText = document.getElementById("statusText");
 let audioUnlocked = false;
 let brain = { mood:"soft", lastUser: Date.now(), lastAuto: 0 };
 
-const LS_KEY = "cara_settings_v4";
+// presencia (cámara)
+let presence = {
+  seen: false,
+  distance: "unknown", // near | mid | far
+  attention: false,
+  lastSeenTs: 0
+};
+
+// ================= SETTINGS =================
+const LS_KEY = "cara_settings_v6";
 let adultMode = false;
 let autoMode = true;
 
-// ================= SETTINGS =================
 function loadSettings(){
   try{
     const s = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
@@ -68,14 +78,8 @@ function saveSettings(){
 
 // ================= MENU =================
 function isMenuOpen(){ return sideMenu.classList.contains("open"); }
-function openMenu(){
-  sideMenu.classList.add("open");
-  menuBackdrop.classList.add("open");
-}
-function closeMenu(){
-  sideMenu.classList.remove("open");
-  menuBackdrop.classList.remove("open");
-}
+function openMenu(){ sideMenu.classList.add("open"); menuBackdrop.classList.add("open"); }
+function closeMenu(){ sideMenu.classList.remove("open"); menuBackdrop.classList.remove("open"); }
 menuBtn.addEventListener("click",(e)=>{ e.preventDefault(); isMenuOpen()?closeMenu():openMenu(); });
 menuBackdrop.addEventListener("click", closeMenu);
 
@@ -180,7 +184,8 @@ async function callAPI(message, isAuto=false){
     message: String(message||"").trim(),
     mood: brain.mood,
     adult: adultMode,
-    auto: !!isAuto
+    auto: !!isAuto,
+    presence // enviamos señales de presencia (opcional para el backend)
   };
   const r = await fetch(API_URL, {
     method:"POST",
@@ -217,11 +222,77 @@ function tickInitiative(){
   }
 }
 
+// ================= 👁️ CÁMARA / PRESENCIA =================
+let faceDetector = null;
+let camera = null;
+
+function setupCameraAndPresence(){
+  try{
+    faceDetector = new FaceDetection({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+    });
+    faceDetector.setOptions({
+      model: 'short',
+      minDetectionConfidence: 0.6
+    });
+    faceDetector.onResults(onFaceResults);
+
+    camera = new Camera(camVideo, {
+      onFrame: async () => {
+        if (faceDetector) {
+          await faceDetector.send({ image: camVideo });
+        }
+      },
+      width: 640,
+      height: 480
+    });
+
+    camera.start();
+  } catch(e){
+    console.warn("Cámara/presencia no disponible:", e);
+  }
+}
+
+function onFaceResults(results){
+  const faces = results.detections || [];
+  if (faces.length > 0){
+    presence.seen = true;
+    presence.lastSeenTs = Date.now();
+
+    const box = faces[0].boundingBox;
+    const area = box.width * box.height;
+
+    // heurística simple de distancia
+    if (area > 0.18) presence.distance = "near";
+    else if (area > 0.08) presence.distance = "mid";
+    else presence.distance = "far";
+
+    // atención: si la cara ocupa bastante área, asumimos que mira
+    presence.attention = area > 0.1;
+
+    // actualizar status visual
+    if (presence.attention) {
+      statusText.textContent = "Cara te está mirando";
+    } else {
+      statusText.textContent = "Cara te siente cerca";
+    }
+  } else {
+    // si hace >5s que no ve cara
+    if (Date.now() - presence.lastSeenTs > 5000){
+      presence.seen = false;
+      presence.attention = false;
+      presence.distance = "unknown";
+      statusText.textContent = "Cara espera que vuelvas";
+    }
+  }
+}
+
 // ================= START =================
 startBtn.addEventListener("click", ()=>{
   unlockAudio();
   start.style.display = "none";
   setupSTT();
+  setupCameraAndPresence(); // 👁️ cámara
   nextVideoByMood("soft");
   callAPI("Hola", false).catch(()=>{});
   setInterval(tickInitiative, 5000);
