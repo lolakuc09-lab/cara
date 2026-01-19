@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#000000" />
+  <title>Cara</title>
+
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- START OVERLAY -->
+  <div id="start">
+    <h1>Cara</h1>
+    <p>Tocá “Iniciar” para habilitar audio y que Cara pueda hablar.</p>
+    <button id="startBtn">INICIAR</button>
+  </div>
+
+  <!-- VIDEO -->
+  <div id="video-layer">
+    <video id="v1" class="v active" playsinline muted loop preload="auto"></video>
+    <video id="v2" class="v" playsinline muted loop preload="auto"></video>
+  </div>
+
+  <!-- UI -->
+  <div id="ui-layer">
+
+    <div id="topbar">
+      <div id="status"><span id="dot">●</span><span id="statusText">Cara está contigo</span></div>
+    </div>
+
+    <div id="sideMenu">
+      <h2>Ajustes</h2>
+
+      <div class="setting">
+        <label>Personalidad</label>
+        <select id="mode">
+          <option value="neutral">Neutral</option>
+          <option value="amable">Amable</option>
+          <option value="curiosa">Curiosa</option>
+          <option value="energica">Enérgica</option>
+          <option value="serena">Serena</option>
+          <option value="profunda">Profunda</option>
+          <option value="coqueta">Coqueta</option>
+          <option value="adulto">Adulto (+18 no explícito)</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label>Velocidad de voz</label>
+        <input type="range" min="0.70" max="1.25" step="0.01" id="voiceRate" value="0.95">
+        <div class="mini"><span id="voiceRateVal">0.95</span></div>
+      </div>
+
+      <div class="setting">
+        <label>Intensidad visual</label>
+        <input type="range" min="0" max="1" step="0.01" id="intensity" value="0.45">
+        <div class="mini"><span id="intensityVal">0.45</span></div>
+      </div>
+
+      <div class="setting">
+        <label>Zoom video</label>
+        <input type="range" min="0.9" max="1.35" step="0.01" id="zoom" value="1.00">
+        <div class="mini"><span id="zoomVal">1.00</span></div>
+      </div>
+    </div>
+
+    <div id="bottom">
+      <div id="inputWrap">
+        <input id="msg" placeholder="Decile algo a Cara..." autocomplete="off" />
+        <button id="send" type="button">Enviar</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
