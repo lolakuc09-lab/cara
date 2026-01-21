@@ -85,12 +85,13 @@ menuBtn.addEventListener("click",(e)=>{ e.preventDefault(); isMenuOpen()?closeMe
 menuBackdrop.addEventListener("click", closeMenu);
 
 // ================= VIDEO =================
+// 🔥 ÚNICA SECCIÓN MODIFICADA: ahora usa 40 videos
 const videoPools = {
-  idle:[1,2,3,4],
-  soft:[5,6,7,8],
-  tease:[9,10,11,12],
-  hot:[13,14],
-  intense:[15,16,17,18,19,20,21,22,23,24]
+  idle:   [1,2,3,4,5,6,7,8],
+  soft:   [9,10,11,12,13,14,15,16],
+  tease:  [17,18,19,20,21,22,23,24],
+  hot:    [25,26,27,28],
+  intense:[29,30,31,32,33,34,35,36,37,38,39,40]
 };
 
 // Bolsas de reproducción sin repetición
@@ -128,7 +129,6 @@ let lastAutoVideoChange = 0;
 function pickFromPool(mood){
   return getNextFromBag(mood);
 }
-
 
 function applyEffects(){
   const vi = parseFloat(intensity.value);
