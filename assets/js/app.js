@@ -40,9 +40,15 @@ const forceNext = document.getElementById("forceNext");
 
 const statusText = document.getElementById("statusText");
 
+// ➕ MODO AYUDA (botón)
+const helpToggle = document.getElementById("helpToggle");
+
 // ================= ESTADO =================
 let audioUnlocked = false;
 let brain = { mood:"soft", lastUser: Date.now(), lastAuto: 0 };
+
+// ➕ MODO AYUDA (estado)
+let helpMode = false;
 
 // presencia (cámara)
 let presence = {
@@ -83,6 +89,20 @@ function openMenu(){ sideMenu.classList.add("open"); menuBackdrop.classList.add(
 function closeMenu(){ sideMenu.classList.remove("open"); menuBackdrop.classList.remove("open"); }
 menuBtn.addEventListener("click",(e)=>{ e.preventDefault(); isMenuOpen()?closeMenu():openMenu(); });
 menuBackdrop.addEventListener("click", closeMenu);
+
+// ================= ➕ MODO AYUDA =================
+if (helpToggle){
+  helpToggle.addEventListener("click", ()=>{
+    helpMode = !helpMode;
+    helpToggle.classList.toggle("active", helpMode);
+
+    // feedback suave
+    if (audioUnlocked){
+      if (helpMode) hablar("Estoy acá para ayudarte.");
+      else hablar("Listo. Me quedo acompañándote.");
+    }
+  });
+}
 
 // ================= VIDEO =================
 // 🔥 ÚNICA SECCIÓN MODIFICADA: ahora usa 40 videos
@@ -256,6 +276,10 @@ async function callAPI(message, isAuto=false){
     mood: brain.mood,
     adult: adultMode,
     auto: !!isAuto,
+
+    // ➕ MODO AYUDA (flag para el Worker)
+    help: helpMode,
+
     presence
   };
   const r = await fetch(API_URL, {

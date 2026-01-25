@@ -12,27 +12,33 @@
 </head>
 <body>
 
-  <!-- START OVERLAY (obligatorio en iOS para desbloquear audio y cámara) -->
+  <!-- START OVERLAY -->
   <div id="start">
     <h1>Cara</h1>
     <p>Tocá “Iniciar” para habilitar audio, micrófono y cámara.</p>
     <button id="startBtn">INICIAR</button>
   </div>
 
-  <!-- VIDEO DE FONDO -->
+  <!-- VIDEO -->
   <div id="video-layer">
     <video id="v1" class="v active" playsinline muted loop preload="auto"></video>
     <video id="v2" class="v" playsinline muted loop preload="auto"></video>
   </div>
 
-  <!-- VIDEO OCULTO DE CÁMARA (NO SE MUESTRA) -->
   <video id="cam" playsinline autoplay muted style="display:none"></video>
 
   <!-- UI -->
   <div id="ui-layer">
     <div id="topbar">
-      <div id="status"><span id="dot">●</span><span id="statusText">Cara está contigo</span></div>
+      <div id="status">
+        <span id="dot">●</span>
+        <span id="statusText">Cara está contigo</span>
+      </div>
+
       <div class="row">
+        <!-- ➕ BOTÓN MODO AYUDA -->
+        <button id="helpToggle" class="btn" title="Modo ayuda">?</button>
+
         <button id="menuBtn" class="btn" aria-expanded="false">≡</button>
       </div>
     </div>
@@ -83,7 +89,7 @@
       </div>
     </div>
 
-    <!-- BOTTOM INPUT -->
+    <!-- BOTTOM -->
     <div id="bottom">
       <div id="inputWrap">
         <button id="micBtn" title="Hablar">🎤</button>
@@ -93,7 +99,7 @@
     </div>
   </div>
 
-  <!-- MediaPipe Face Detection (on-device) -->
+  <!-- MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
