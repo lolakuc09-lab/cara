@@ -105,8 +105,9 @@ if (helpToggle){
   });
 }
 
-// ================= VIDEO (VIDEO ÚNICO) =================
-const SINGLE_VIDEO_SRC = "assets/videos/1.mp4";
+// ================= VIDEO (MULTI VIDEO) =================
+const videos = Array.from({ length: 32 }, (_, i) => `assets/videos/video${i+1}.mp4`);
+let currentVideo = -1;
 
 function applyEffects(){
   const vi = parseFloat(intensity.value);
@@ -129,16 +130,17 @@ function setVideo(src){
     front.classList.remove("active");
     [front, back] = [back, front];
     applyEffects();
+
+    // 🔁 cambia automáticamente cuando termina
+    front.onended = nextVideoByMood;
   };
 }
 
-// Siempre el mismo video
+// 🔁 cambia en orden (podés cambiar a random si querés)
 function nextVideoByMood(){
-  setVideo(SINGLE_VIDEO_SRC);
+  currentVideo = (currentVideo + 1) % videos.length;
+  setVideo(videos[currentVideo]);
 }
-
-// Neutralizado
-function decideVideoByPresence(){}
 
 // ================= VOZ =================
 function hablar(text){
